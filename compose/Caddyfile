@@ -1,0 +1,16 @@
+nikolajs-nextcloud.lat {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+
+	reverse_proxy web:80
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=15552000; includeSubDomains"
+	}
+
+	request_body {
+		max_size 3GB
+	}
+}

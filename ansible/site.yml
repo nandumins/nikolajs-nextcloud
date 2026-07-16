@@ -1,0 +1,6 @@
+---
+- name: Deploy Nextcloud stack
+  hosts: local
+  become: false
+  roles:
+    - nextcloud_deploy

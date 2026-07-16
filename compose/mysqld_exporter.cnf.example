@@ -1,0 +1,5 @@
+[client]
+user=exporter
+password=CHANGE_ME
+host=db
+port=3306

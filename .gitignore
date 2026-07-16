@@ -1,0 +1,13 @@
+# Secrets
+compose/.env
+
+# Backup files from sed -i edits
+*.bak
+*.bak2
+
+# macOS
+.DS_Store
+
+# Ansible
+*.retry
+compose/mysqld_exporter.cnf
