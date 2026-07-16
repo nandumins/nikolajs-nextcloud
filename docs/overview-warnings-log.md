@@ -304,3 +304,24 @@ than intended. This is a direct, concrete illustration of why ad-hoc
 `.bak` files are a weak substitute for real version control — a
 motivating reason to move this project into git sooner rather than
 later.
+
+## Operational note — desktop client after a full rebuild
+
+A full `make destroy` + `make deploy` (or `make redeploy`) wipes the
+database, which recreates the admin account from scratch. If the
+Nextcloud desktop client on the same Mac was already connected
+before the rebuild, it will keep retrying its old, now-invalid
+session token — this produces repeated 401s on WebDAV PROPFIND
+requests, which can escalate into Nextcloud's brute-force/rate-limit
+protection (429 Too Many Requests) if left retrying for a while.
+
+This is a testing artifact specific to repeatedly destroying and
+recreating the entire server out from under an already-connected
+client — not a realistic production scenario, since a real server
+isn't normally rebuilt from zero while live users are connected.
+
+**Practical fix:** after any full rebuild, remove and re-add the
+account in the desktop client to force a fresh session token. If the
+rate limiter has already triggered, also run:
+`docker compose exec app php occ security:bruteforce:reset <ip>`
+using the IP shown in nginx's access log (`docker compose logs web`).
