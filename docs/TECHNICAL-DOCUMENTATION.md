@@ -157,9 +157,8 @@ already-unsupported component.
 ```bash
 git clone <repo-url>
 cd nextcloud
-cp compose/.env.example compose/.env
+make bootstrap
 # edit compose/.env with real values: passwords, domain, Cloudflare API token
-cp compose/mysqld_exporter.cnf.example compose/mysqld_exporter.cnf
 # edit compose/mysqld_exporter.cnf with the same exporter password used in .env
 make deploy
 ```
