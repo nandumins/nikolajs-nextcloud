@@ -411,3 +411,35 @@ fresh installs unrelated to any actual upgrade (confirmed via a
 matching community bug report showing the identical message on an
 unrelated version/context). Not indicative of a problem with this
 deployment.
+
+## Why "Errors in the log" reappears after every fresh deploy
+
+This warning is expected to resurface after any `make deploy`/
+`make redeploy`, and that is not a regression - it's a structural
+property of what the check does and what a fresh install produces.
+
+**What triggers it, every time, on a brand-new install:**
+1. `Skipping updater backup clean-up - could not find updater backup
+   folder` - cron correctly reports there's nothing to clean up,
+   since a fresh install has no update history yet.
+2. `Value type is set to zero (0) in database. This is fine only
+   during the upgrade process from 28 to 29.` - confirmed via
+   Nextcloud's own source (lib/private/AppConfig.php) to be a
+   hardcoded, generic warning with stale wording, logged whenever an
+   app config value is stored with an untyped/mixed type. Fires
+   regardless of actual version; unrelated to any real upgrade.
+
+Both are level-2 (warning), not level-3 (error) severity, confirmed
+by reading the raw log entries directly each time this recurred.
+Neither indicates a defect in this deployment - they are Nextcloud's
+own internal bookkeeping being logged at a level the setup check
+surfaces, on a system that (by design, per the from-zero testing in
+this project) gets freshly reinstalled repeatedly.
+
+**Why this is not truncated away permanently:** doing so would only
+hide it until the next `make redeploy`, at which point the exact same
+two entries reappear from the exact same fresh-install conditions.
+Truncating the log is a cosmetic reset, not a fix, and re-hiding it
+every time would misrepresent the deployment's actual state rather
+than explain it. This section exists so that reappearance is expected
+and explained, not something to chase away each time.
