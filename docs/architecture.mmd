@@ -1,0 +1,51 @@
+flowchart TB
+    subgraph client["Client side"]
+        DC["Nextcloud Desktop Client"]
+        BR["Browser"]
+    end
+
+    subgraph edge["Edge / TLS"]
+        CF["Cloudflare<br/>DNS + DNS-01 ACME challenge only<br/>no proxying, no traffic path"]
+        CADDY["Caddy<br/>reverse proxy, Let's Encrypt cert,<br/>HSTS, 3GB body limit"]
+    end
+
+    subgraph app["Application"]
+        WEB["nginx<br/>static files, FastCGI proxy,<br/>.well-known routing"]
+        APP["Nextcloud<br/>php-fpm"]
+        CRON["Cron container<br/>occ system:cron every 5 min"]
+    end
+
+    subgraph data["Data"]
+        DB["MariaDB"]
+        REDIS["Redis<br/>memcache + file locking"]
+    end
+
+    subgraph obs["Observability"]
+        NODEEXP["node_exporter"]
+        MYSQLEXP["mysqld_exporter"]
+        ALLOY["Grafana Alloy<br/>log shipping"]
+        PROM["Prometheus<br/>:9090"]
+        LOKI["Loki"]
+        GRAF["Grafana<br/>:3000"]
+    end
+
+    DC -->|HTTPS, WebDAV| CADDY
+    BR -->|HTTPS| CADDY
+    CADDY -.->|DNS-01 challenge| CF
+    CADDY --> WEB
+    WEB --> APP
+    CRON --> APP
+    APP --> DB
+    APP --> REDIS
+    CRON --> DB
+    CRON --> REDIS
+
+    ALLOY -.->|reads container logs| APP
+    ALLOY -.->|reads container logs| WEB
+    ALLOY -.->|reads container logs| CADDY
+    ALLOY --> LOKI
+    NODEEXP --> PROM
+    MYSQLEXP --> DB
+    MYSQLEXP --> PROM
+    PROM --> GRAF
+    LOKI --> GRAF

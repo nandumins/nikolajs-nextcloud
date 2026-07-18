@@ -10,7 +10,6 @@ purchased domain. Includes monitoring (Prometheus + Grafana) and log
 aggregation (Loki + Grafana Alloy).
 
 ## Architecture
-
 ```mermaid
 flowchart TB
     subgraph client["Client side"]
@@ -19,33 +18,33 @@ flowchart TB
     end
 
     subgraph edge["Edge / TLS"]
-        CF["Cloudflare<br/>(DNS + DNS-01 ACME challenge only —<br/>no proxying, no traffic path)"]
-        CADDY["Caddy<br/>(reverse proxy, Let's Encrypt cert,<br/>HSTS, large body size)"]
+        CF["Cloudflare<br/>DNS + DNS-01 ACME challenge only<br/>no proxying, no traffic path"]
+        CADDY["Caddy<br/>reverse proxy, Let's Encrypt cert,<br/>HSTS, 3GB body limit"]
     end
 
-    subgraph app["Application layer"]
-        WEB["nginx<br/>(static files, FastCGI proxy,<br/>.well-known routing)"]
-        APP["Nextcloud (php-fpm)"]
-        CRON["Cron container<br/>(occ system:cron every 5 min)"]
+    subgraph app["Application"]
+        WEB["nginx<br/>static files, FastCGI proxy,<br/>.well-known routing"]
+        APP["Nextcloud<br/>php-fpm"]
+        CRON["Cron container<br/>occ system:cron every 5 min"]
     end
 
-    subgraph data["Data layer"]
+    subgraph data["Data"]
         DB["MariaDB"]
-        REDIS["Redis<br/>(memcache + file locking)"]
+        REDIS["Redis<br/>memcache + file locking"]
     end
 
     subgraph obs["Observability"]
-        PROM["Prometheus"]
-        GRAF["Grafana"]
-        LOKI["Loki"]
-        ALLOY["Grafana Alloy<br/>(log shipping)"]
         NODEEXP["node_exporter"]
         MYSQLEXP["mysqld_exporter"]
+        ALLOY["Grafana Alloy<br/>log shipping"]
+        PROM["Prometheus<br/>:9090"]
+        LOKI["Loki"]
+        GRAF["Grafana<br/>:3000"]
     end
 
     DC -->|HTTPS, WebDAV| CADDY
     BR -->|HTTPS| CADDY
-    CADDY -->|DNS-01 challenge| CF
+    CADDY -.->|DNS-01 challenge| CF
     CADDY --> WEB
     WEB --> APP
     CRON --> APP
@@ -64,6 +63,7 @@ flowchart TB
     PROM --> GRAF
     LOKI --> GRAF
 ```
+
 
 ## Component table
 
