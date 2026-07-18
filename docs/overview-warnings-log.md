@@ -399,3 +399,15 @@ gracefully for that case.
 job when run against a fresh install with nothing to migrate, not a
 defect in this deployment. No action taken; expected to stop
 recurring once the job's internal retry logic exhausts.
+
+## Log warning - "Value type is set to zero (0) in database"
+
+Confirmed benign via Nextcloud's own source
+(lib/private/AppConfig.php): this is a hardcoded, generic warning
+logged whenever an app config value is stored with an untyped/mixed
+type - the "fine only during upgrade from 28 to 29" text is stale,
+leftover wording from whenever this check was written, and fires on
+fresh installs unrelated to any actual upgrade (confirmed via a
+matching community bug report showing the identical message on an
+unrelated version/context). Not indicative of a problem with this
+deployment.
