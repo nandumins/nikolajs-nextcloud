@@ -1,13 +1,12 @@
 # Secrets
 compose/.env
+compose/mysqld_exporter.cnf
 
 # Backup files from sed -i edits
-*.bak
-*.bak2
+*.bak*
 
 # macOS
 .DS_Store
 
 # Ansible
 *.retry
-compose/mysqld_exporter.cnf
