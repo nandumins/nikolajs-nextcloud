@@ -361,3 +361,19 @@ design decision to preserve Caddy's cert storage volume across
 `make destroy` matters in practice — and a real, honest thing to
 discuss if asked about rate limits or certificate management in the
 interview.
+
+## Restart policy — always vs unless-stopped
+
+Initially used `restart: unless-stopped` on all services. After a
+full Mac restart, containers did not come back up automatically.
+
+**Cause:** `unless-stopped` deliberately does not restart a container
+if it was last stopped manually (e.g. via `docker compose stop`,
+which was used for clean shutdowns earlier in this project) — Docker
+persists that "manually stopped" intent across daemon/host restarts.
+
+**Fix:** changed to `restart: always`, which restarts containers
+unconditionally after any Docker daemon restart, including after a
+manual stop. This matches the actual goal (stack is running whenever
+the laptop is on, no manual intervention needed) more precisely than
+`unless-stopped` did.

@@ -1,28 +1,32 @@
 ---
 - name: Wait for MariaDB to be healthy
-  command: docker compose exec -T db healthcheck.sh --connect --innodb_initialized
+  ansible.builtin.command: docker compose exec -T db healthcheck.sh --connect --innodb_initialized
   args:
     chdir: "{{ playbook_dir }}/../compose"
-  register: db_health
-  until: db_health.rc == 0
+  register: nextcloud_deploy_db_health
+  until: nextcloud_deploy_db_health.rc == 0
   retries: 15
   delay: 3
   changed_when: false
 
 - name: Read MYSQL_ROOT_PASSWORD from .env
-  shell: grep '^MYSQL_ROOT_PASSWORD=' "{{ playbook_dir }}/../compose/.env" | cut -d= -f2-
-  register: mysql_root_pw
+  ansible.builtin.shell: >
+    set -o pipefail && grep '^MYSQL_ROOT_PASSWORD=' "{{ playbook_dir }}/../compose/.env" | cut -d= -f2-
+  register: nextcloud_deploy_mysql_root_pw
   changed_when: false
 
 - name: Read MYSQLD_EXPORTER_PASSWORD from .env
-  shell: grep '^MYSQLD_EXPORTER_PASSWORD=' "{{ playbook_dir }}/../compose/.env" | cut -d= -f2-
-  register: exporter_pw
+  ansible.builtin.shell: >
+    set -o pipefail && grep '^MYSQLD_EXPORTER_PASSWORD=' "{{ playbook_dir }}/../compose/.env" | cut -d= -f2-
+  register: nextcloud_deploy_exporter_pw
   changed_when: false
 
 - name: Create MySQL exporter monitoring user
-  shell: >
-    docker compose exec -T db mariadb -u root -p"{{ mysql_root_pw.stdout }}"
-    -e "CREATE USER IF NOT EXISTS 'exporter'@'%' IDENTIFIED BY '{{ exporter_pw.stdout }}'; GRANT SELECT, PROCESS, REPLICATION CLIENT, SLAVE MONITOR ON *.* TO 'exporter'@'%'; FLUSH PRIVILEGES;"
+  ansible.builtin.shell: >
+    docker compose exec -T db mariadb -u root -p"{{ nextcloud_deploy_mysql_root_pw.stdout }}"
+    -e "CREATE USER IF NOT EXISTS 'exporter'@'%' IDENTIFIED BY
+    '{{ nextcloud_deploy_exporter_pw.stdout }}'; GRANT SELECT, PROCESS,
+    REPLICATION CLIENT, SLAVE MONITOR ON *.* TO 'exporter'@'%'; FLUSH PRIVILEGES;"
   args:
     chdir: "{{ playbook_dir }}/../compose"
   changed_when: true

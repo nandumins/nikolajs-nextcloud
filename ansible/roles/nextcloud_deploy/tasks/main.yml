@@ -1,87 +1,94 @@
 ---
 - name: Check Docker is installed
-  command: docker --version
-  register: docker_check
+  ansible.builtin.command: docker --version
+  register: nextcloud_deploy_docker_check
   changed_when: false
-  failed_when: docker_check.rc != 0
+  failed_when: nextcloud_deploy_docker_check.rc != 0
 
 - name: Check Docker daemon is running
-  command: docker info
-  register: docker_info
+  ansible.builtin.command: docker info
+  register: nextcloud_deploy_docker_info
   changed_when: false
-  failed_when: docker_info.rc != 0
+  failed_when: nextcloud_deploy_docker_info.rc != 0
 
 - name: Report Docker version
-  debug:
-    msg: "Docker is installed and running: {{ docker_check.stdout }}"
+  ansible.builtin.debug:
+    msg: "Docker is installed and running: {{ nextcloud_deploy_docker_check.stdout }}"
 
 - name: Ensure .env file exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ playbook_dir }}/../compose/.env"
-  register: env_file
+  register: nextcloud_deploy_env_file
 
 - name: Fail if .env is missing
-  fail:
+  ansible.builtin.fail:
     msg: ".env file not found in compose/ — copy .env.example and fill in real values before deploying"
-  when: not env_file.stat.exists
+  when: not nextcloud_deploy_env_file.stat.exists
 
 - name: Pull latest images
-  command: docker compose pull
+  ansible.builtin.command: docker compose pull
   args:
     chdir: "{{ playbook_dir }}/../compose"
   changed_when: false
 
 - name: Bring up the stack
-  command: docker compose up -d
+  ansible.builtin.command: docker compose up -d
   args:
     chdir: "{{ playbook_dir }}/../compose"
-  register: compose_up
+  register: nextcloud_deploy_compose_up
+  changed_when: "'Started' in nextcloud_deploy_compose_up.stderr or 'Created' in nextcloud_deploy_compose_up.stderr"
 
 - name: Show compose up output
-  debug:
-    msg: "{{ compose_up.stdout_lines }}"
+  ansible.builtin.debug:
+    msg: "{{ nextcloud_deploy_compose_up.stdout_lines }}"
 
 - name: Set up MySQL exporter user
-  include_tasks: exporter_user.yml
+  ansible.builtin.include_tasks: exporter_user.yml
 
 - name: Wait for Nextcloud to finish first-run install
-  command: docker compose exec -T app php occ status
+  ansible.builtin.command: docker compose exec -T app php occ status
   args:
     chdir: "{{ playbook_dir }}/../compose"
-  register: nc_status
-  until: "'installed: true' in nc_status.stdout"
+  register: nextcloud_deploy_nc_status
+  until: "'installed: true' in nextcloud_deploy_nc_status.stdout"
   retries: 20
   delay: 5
   changed_when: false
 
 - name: Copy config override file into the app container
-  command: docker compose cp ./nextcloud-overrides.config.php app:/var/www/html/config/nextcloud-overrides.config.php
+  ansible.builtin.command: >
+    docker compose cp ./nextcloud-overrides.config.php
+    app:/var/www/html/config/nextcloud-overrides.config.php
   args:
     chdir: "{{ playbook_dir }}/../compose"
   changed_when: true
 
 - name: Copy config override file into the cron container
-  command: docker compose cp ./nextcloud-overrides.config.php cron:/var/www/html/config/nextcloud-overrides.config.php
+  ansible.builtin.command: >
+    docker compose cp ./nextcloud-overrides.config.php
+    cron:/var/www/html/config/nextcloud-overrides.config.php
   args:
     chdir: "{{ playbook_dir }}/../compose"
   changed_when: true
 
 - name: Fix ownership of the copied config file (app)
-  command: docker compose exec -T -u root app chown www-data:www-data /var/www/html/config/nextcloud-overrides.config.php
+  ansible.builtin.command: >
+    docker compose exec -T -u root app
+    chown www-data:www-data /var/www/html/config/nextcloud-overrides.config.php
   args:
     chdir: "{{ playbook_dir }}/../compose"
   changed_when: false
 
 - name: Set background jobs mode to cron
-  command: docker compose exec -T app php occ config:app:set core backgroundjobs_mode --value=cron
+  ansible.builtin.command: docker compose exec -T app php occ config:app:set core backgroundjobs_mode --value=cron
   args:
     chdir: "{{ playbook_dir }}/../compose"
-  register: cron_mode_result
-  changed_when: "'were not updated' not in cron_mode_result.stdout"
+  register: nextcloud_deploy_cron_mode_result
+  changed_when: "'were not updated' not in nextcloud_deploy_cron_mode_result.stdout"
 
 - name: Run expensive maintenance repairs (mimetype migrations, etc.)
-  command: docker compose exec -T app php occ maintenance:repair --include-expensive
+  ansible.builtin.command: docker compose exec -T app php occ maintenance:repair --include-expensive
   args:
     chdir: "{{ playbook_dir }}/../compose"
-  register: repair_result
+  register: nextcloud_deploy_repair_result
   changed_when: true
