@@ -10,3 +10,4 @@ compose/mysqld_exporter.cnf
 
 # Ansible
 *.retry
+compose/grafana-provisioning/dashboards/*.json

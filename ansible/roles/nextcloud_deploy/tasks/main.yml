@@ -92,3 +92,27 @@
     chdir: "{{ playbook_dir }}/../compose"
   register: nextcloud_deploy_repair_result
   changed_when: true
+
+- name: Download Node Exporter Full dashboard
+  ansible.builtin.get_url:
+    url: https://grafana.com/api/dashboards/1860/revisions/latest/download
+    dest: "{{ playbook_dir }}/../compose/grafana-provisioning/dashboards/node-exporter-full.json"
+    mode: '0644'
+
+- name: Download MySQL/MariaDB dashboard
+  ansible.builtin.get_url:
+    url: https://grafana.com/api/dashboards/7362/revisions/latest/download
+    dest: "{{ playbook_dir }}/../compose/grafana-provisioning/dashboards/mysql-overview.json"
+    mode: '0644'
+
+- name: Replace templated datasource variable in MySQL dashboard
+  ansible.builtin.replace:
+    path: "{{ playbook_dir }}/../compose/grafana-provisioning/dashboards/mysql-overview.json"
+    regexp: '\$\{DS_PROMETHEUS\}'
+    replace: 'Prometheus'
+
+- name: Replace templated datasource variable in Node Exporter dashboard
+  ansible.builtin.replace:
+    path: "{{ playbook_dir }}/../compose/grafana-provisioning/dashboards/node-exporter-full.json"
+    regexp: '\$\{DS_PROMETHEUS\}'
+    replace: 'Prometheus'
