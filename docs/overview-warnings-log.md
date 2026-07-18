@@ -377,3 +377,25 @@ unconditionally after any Docker daemon restart, including after a
 manual stop. This matches the actual goal (stack is running whenever
 the laptop is on, no manual intervention needed) more precisely than
 `unless-stopped` did.
+
+## Background job error - MigrateBackgroundImages NotFoundException
+
+**Observed:** An Error-level log entry (not just Warning) for
+`OCA\Theming\Jobs\MigrateBackgroundImages`, failing with
+`NotFoundException: /appdata_<instanceid>/theming/global`.
+
+**Cause:** This background job (queued automatically by
+`occ maintenance:repair --include-expensive`) migrates legacy
+dashboard background images into the theming app's storage - a
+migration path intended for instances upgrading from an older
+Nextcloud version that already had custom background images set.
+This instance is a fresh install with no theming customization ever
+configured (confirmed by the repair command's own earlier output:
+"Theming is not used to provide a logo") - the source folder the job
+expects simply doesn't exist, and the job throws instead of no-op'ing
+gracefully for that case.
+
+**Assessment:** benign - an edge case in Nextcloud's own migration
+job when run against a fresh install with nothing to migrate, not a
+defect in this deployment. No action taken; expected to stop
+recurring once the job's internal retry logic exhausts.
