@@ -2,7 +2,7 @@ services:
   db:
     image: mariadb:11
     container_name: nc_db
-    restart: unless-stopped
+    restart: always
     command: --transaction-isolation=READ-COMMITTED --innodb-file-per-table=1 --skip-innodb-read-only-compressed
     volumes:
       - db_data:/var/lib/mysql
@@ -22,7 +22,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: nc_redis
-    restart: unless-stopped
+    restart: always
     command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
@@ -32,7 +32,7 @@ services:
   app:
     image: nextcloud:fpm
     container_name: nc_app
-    restart: unless-stopped
+    restart: always
     depends_on:
       db:
         condition: service_healthy
@@ -58,7 +58,7 @@ services:
   cron:
     image: nextcloud:fpm
     container_name: nc_cron
-    restart: unless-stopped
+    restart: always
     entrypoint: /cron.sh
     depends_on:
       db:
@@ -80,7 +80,7 @@ services:
   web:
     image: nginx:alpine
     container_name: nc_web
-    restart: unless-stopped
+    restart: always
     depends_on:
       - app
     volumes:
@@ -96,7 +96,7 @@ services:
       context: .
       dockerfile: Dockerfile.caddy
     container_name: nc_caddy
-    restart: unless-stopped
+    restart: always
     depends_on:
       - web
     ports:
@@ -116,14 +116,14 @@ services:
   node_exporter:
     image: prom/node-exporter:latest
     container_name: nc_node_exporter
-    restart: unless-stopped
+    restart: always
     networks:
       - nextcloud_net
 
   mysqld_exporter:
     image: prom/mysqld-exporter:latest
     container_name: nc_mysqld_exporter
-    restart: unless-stopped
+    restart: always
     command:
       - --config.my-cnf=/etc/mysqld_exporter.cnf
     volumes:
@@ -137,7 +137,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: nc_prometheus
-    restart: unless-stopped
+    restart: always
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -147,7 +147,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: nc_grafana
-    restart: unless-stopped
+    restart: always
     ports:
       - "3000:3000"
     environment:
@@ -160,7 +160,7 @@ services:
   loki:
     image: grafana/loki:latest
     container_name: nc_loki
-    restart: unless-stopped
+    restart: always
     volumes:
       - loki_data:/loki
     networks:
@@ -169,7 +169,7 @@ services:
   alloy:
     image: grafana/alloy:latest
     container_name: nc_alloy
-    restart: unless-stopped
+    restart: always
     volumes:
       - ./alloy-config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro

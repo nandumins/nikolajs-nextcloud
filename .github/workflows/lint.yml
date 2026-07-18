@@ -1,0 +1,44 @@
+name: Lint and validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create dummy .env for validation
+        run: |
+          cp compose/.env.example compose/.env
+          cp compose/mysqld_exporter.cnf.example compose/mysqld_exporter.cnf
+
+      - name: Validate docker-compose.yml syntax
+        working-directory: compose
+        run: docker compose config
+
+  lint-ansible:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ansible and ansible-lint
+        run: pip install ansible ansible-lint
+
+      - name: Run ansible-lint
+        run: ansible-lint ansible/site.yml
+
+  lint-yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Lint YAML files
+        run: yamllint -d relaxed compose/docker-compose.yml ansible/
