@@ -478,3 +478,14 @@ continue showing "N/A" even with the fix applied - not a remaining
 bug, just a dashboard assumption that doesn't hold in a Docker-
 Desktop-for-Mac context. The other filesystem/disk panels using
 `/var/lib` (or matching the real device) now show accurate data.
+
+**Additional verification:** confirmed via direct Prometheus queries
+that real CPU (`node_cpu_seconds_total`) and real disk usage
+(calculated from `node_filesystem_avail_bytes`/`node_filesystem_size_bytes`
+at `mountpoint="/var/lib"`, showing ~10% used on the real 224GB disk)
+are genuinely present after the fix. The dashboard's "CPU Basic",
+"Memory Basic" etc. panel variants show "No data" - this appears to
+be a template/query mismatch specific to those particular panels
+within the imported dashboard, not a sign the underlying exporter
+fix failed; the "Quick CPU/Mem/Disk" panels on the same dashboard
+show correct, real values from the same metrics.
