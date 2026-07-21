@@ -443,3 +443,38 @@ Truncating the log is a cosmetic reset, not a fix, and re-hiding it
 every time would misrepresent the deployment's actual state rather
 than explain it. This section exists so that reappearance is expected
 and explained, not something to chase away each time.
+
+## Monitoring fix - node_exporter was not reading real host metrics
+
+**Cause:** `node_exporter` was running with no volume mounts and no
+command flags - meaning it only had visibility into its own
+container's isolated filesystem, not the actual host. Confirmed via
+Grafana's "Root FS Used/Total" panel showing `N/A`, and the disk
+panel's legend showing only `/etc/hostname`, `/etc/hosts`,
+`/etc/resolv.conf` - three small files Docker injects into every
+container, not real disk partitions. CPU and memory metrics were
+still roughly accurate regardless, since containers share the host
+kernel's `/proc/stat` and `/proc/meminfo` by default - only
+filesystem visibility specifically requires the extra mount.
+
+**Fix:** added `pid: host`, read-only bind mounts of `/proc`, `/sys`,
+and `/` into the container, and the matching `--path.procfs`,
+`--path.sysfs`, `--path.rootfs` flags (the standard, documented
+node_exporter pattern for exactly this situation) plus a
+mount-points-exclude filter to skip noise like `/sys`, `/proc`,
+`/dev`.
+
+**Nuance discovered after fixing - Docker Desktop for Mac specific:**
+the real host disk now correctly appears in Prometheus, but under
+`mountpoint="/var/lib"` (≈224GB, matching the Mac's actual disk),
+not `mountpoint="/"`. This is because Docker Desktop for Mac runs
+containers inside a lightweight Linux VM, and that VM's own root
+filesystem layout uses `/var/lib` as its main data mount rather than
+`/` - this is expected for Docker Desktop specifically, and would
+look different (mountpoint `/`) on a native Linux Docker host.
+Consequence: the Node Exporter Full dashboard's default "Root FS"
+panel, which filters for `mountpoint="/"` specifically, will likely
+continue showing "N/A" even with the fix applied - not a remaining
+bug, just a dashboard assumption that doesn't hold in a Docker-
+Desktop-for-Mac context. The other filesystem/disk panels using
+`/var/lib` (or matching the real device) now show accurate data.
